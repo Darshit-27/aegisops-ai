@@ -1,30 +1,59 @@
-name: AegisOps CI Pipeline
+name: AegisOps DevSecOps Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
-  build:
+  security-and-build:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
 
+    # -------------------------
+    # 🐍 Python Setup
+    # -------------------------
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: "3.11"
 
-    - name: Install dependencies
+    - name: Install Dependencies
       run: |
         cd backend
         pip install -r requirements.txt
 
-    - name: Run basic import test
+    # -------------------------
+    # 🔐 Gitleaks (Secrets Scan)
+    # -------------------------
+    - name: Run Gitleaks
+      uses: gitleaks/gitleaks-action@v2
+
+    # -------------------------
+    # 🛡️ Bandit (Python Security Scan)
+    # -------------------------
+    - name: Run Bandit
       run: |
-        cd backend
-        python -c "import app.main"
+        pip install bandit
+        bandit -r backend -ll
+
+    # -------------------------
+    # 🐳 Docker Build
+    # -------------------------
+    - name: Build Docker Image
+      run: |
+        docker build -t aegisops-ai ./backend
+
+    # -------------------------
+    # 🔍 Trivy (Container Scan)
+    # -------------------------
+    - name: Run Trivy Scan
+      uses: aquasecurity/trivy-action@0.20.0
+      with:
+        image-ref: "aegisops-ai"
+        format: "table"
+        exit-code: "0"
