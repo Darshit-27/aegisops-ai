@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aegisops-deployment
+  labels:
+    app: aegisops
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: aegisops
+
+  template:
+    metadata:
+      labels:
+        app: aegisops
+
+    spec:
+      containers:
+        - name: aegisops
+
+          image: 178734969953.dkr.ecr.ap-south-1.amazonaws.com/aegisops-ai:latest
+          imagePullPolicy: Never
+
+          ports:
+            - containerPort: 8000
+
+          # 🔥 Resource Management (VERY IMPORTANT)
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "250m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+
+          # 🔥 Liveness Probe (restart if unhealthy)
+          livenessProbe:
+            httpGet:
+              path: /docs
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          # 🔥 Readiness Probe (only send traffic if ready)
+          readinessProbe:
+            httpGet:
+              path: /docs
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
